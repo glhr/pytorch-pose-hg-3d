@@ -16,6 +16,11 @@ from model import create_model
 from utils.debugger import Debugger
 from utils.image import get_affine_transform, transform_preds
 from utils.eval import get_preds, get_preds_3d
+import itertools
+import json
+
+from vision_utils.logger import get_logger
+logger=get_logger()
 
 image_ext = ['jpg', 'jpeg', 'png']
 mean = np.array([0.485, 0.456, 0.406], np.float32).reshape(1, 1, 3)
@@ -40,11 +45,24 @@ def demo_image(image, img_name, model, opt):
       out = model(inp)[-1]
       pred = get_preds(out['hm'].detach().cpu().numpy())[0]
       pred = transform_preds(pred, c, s, (opt.output_w, opt.output_h))
+
       pred_3d = get_preds_3d(out['hm'].detach().cpu().numpy(),
                              out['depth'].detach().cpu().numpy())[0]
 
-
     time = timer.took
+
+    num_joints = pred.shape[0]
+    points = ((pred.reshape(num_joints, -1))).astype(np.int32)
+    keypoints = []
+    for j in range(num_joints):
+        keypoints.extend([int(points[j, 0]), int(points[j, 1]), 1])
+    logger.debug(keypoints)
+    json_out = [{'keypoints':keypoints}]
+    json_out_name = '../../eval/pytorch-pose-hg-3d/' + img_name + '.predictions.json'
+    with open(json_out_name, 'w') as f:
+        json.dump(json_out, f)
+    logger.info(json_out_name)
+
     debugger = Debugger(ipynb=True)
     debugger.add_img(image)
     result = debugger.add_point_2d(pred, (255, 0, 0))
@@ -62,6 +80,7 @@ scale=0.5
 import glob
 import numpy
 from vision_utils.timing import CodeTimer
+
 
 def main(opt):
     opt.heads['depth'] = opt.num_output
@@ -82,6 +101,7 @@ def main(opt):
         dim = (int(image.shape[1] * scale), int(image.shape[0] * scale))
         image = cv2.resize(image, dim)
         times.append(demo_image(image, img_name, model, opt))
+        logger.info(test_image)
     print(np.mean(times))
 
 
