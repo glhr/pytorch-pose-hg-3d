@@ -75,7 +75,7 @@ def demo_image(image, img_name, model, opt):
       # debugger.show_3d()
     return time
 
-scale=1
+scale=0.5
 
 import glob
 import numpy
@@ -95,7 +95,7 @@ def main(opt):
     model = model.to(opt.device)
     model.eval()
 
-    for test_image in glob.glob(f"/home/robotlab/pose test input/*.png"):
+    for test_image in glob.glob(f"/home/slave/Pictures/pose/pose test input/*.png"):
         img_name = f'{test_image.split("/")[-1].split(".")[-2]}-{scale}.{test_image.split(".")[-1]}' if scale<1 else test_image.split("/")[-1]
         image = cv2.imread(test_image)
         dim = (int(image.shape[1] * scale), int(image.shape[0] * scale))
